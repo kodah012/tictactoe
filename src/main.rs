@@ -3,12 +3,26 @@ use bevy_mod_picking::{
     DebugEventsPickingPlugin,
     DefaultPickingPlugins,
     PickableBundle,
-    PickingCameraBundle, PickingEvent, Hover, Highlighting,
+    PickingCameraBundle, PickingEvent, Hover, Highlighting, NoDeselect, PickingPlugin, InteractablePickingPlugin, PickingPluginsState,
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
+
+#[derive(Resource)]
+struct MaterialHandles {
+    pub initial: Handle<ColorMaterial>,
+    pub hovered: Handle<ColorMaterial>,
+    pub clicked: Handle<ColorMaterial>,
+}
+
+
 fn main() {
     App::new()
+        .insert_resource(PickingPluginsState {
+            enable_picking: true,
+            enable_highlighting: false,
+            enable_interacting: true,
+        })
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
                 window: WindowDescriptor {
@@ -24,13 +38,13 @@ fn main() {
             .set(ImagePlugin::default_nearest())
         )
         .add_plugins(DefaultPickingPlugins)
-        //.add_plugin(DebugEventsPickingPlugin)
         .add_plugin(WorldInspectorPlugin)
         .add_startup_system(spawn_camera)
         .add_startup_system(spawn_board)
         .add_system_to_stage(CoreStage::PostUpdate, handle_picking)
         .run();
 }
+
 
 fn spawn_camera(
     mut commands: Commands,
@@ -51,6 +65,27 @@ fn spawn_board(
         .insert(Name::new("Board"))
         .id();
     
+    let initial_mat = materials.add(ColorMaterial {
+        color: Color::rgba(0., 0., 0., 0.),
+        ..default()
+    });
+
+    let hovered_mat = materials.add(ColorMaterial {
+        color: Color::rgba(0., 0., 0., 0.5),
+        ..default()
+    });
+    
+    let clicked_mat = materials.add(ColorMaterial {
+        color: Color::rgba(1., 0., 0., 0.5),
+        ..default()
+    });
+    
+    commands.insert_resource(MaterialHandles {
+        initial: initial_mat.clone(),
+        hovered: hovered_mat.clone(),
+        clicked: clicked_mat.clone(),
+    });
+    
     for row in -1..=1 {
         for col in -1..=1 {
             let cell_ent = commands.spawn((
@@ -60,23 +95,10 @@ fn spawn_board(
                         .with_translation(
                             Vec3::new(col as f32 * tile_size, row as f32 * tile_size, 0.)
                         ),
-                    material: materials.add(ColorMaterial {
-                        color: Color::rgba(0., 0., 0., 0.),
-                        ..default()
-                    }),
+                    material: initial_mat.clone(),
                     ..default()
                 },
                 PickableBundle::default(),
-                Highlighting {
-                    initial: materials.add(ColorMaterial {
-                        color: Color::rgba(0., 0., 0., 0.),
-                        ..default()
-                    }),
-                    hovered: None,
-                    pressed: None,
-                    selected: None,
-                },
-                Name::new("Cell")
             )).id();
             commands.entity(board_ent).add_child(cell_ent);
         }
@@ -86,19 +108,18 @@ fn spawn_board(
 
 // Goal now is when you click on a mesh, it changes color permanently.
 // hovering should not change color. only clicking.
+// Instead of using the built-in highlighting from bevy_mod_picking,
+// change the materials manually using HoverEvents and PickingEvents
 
 fn handle_picking(
+    mut commands: Commands,
     mut events: EventReader<PickingEvent>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    material_q: Query<&Handle<ColorMaterial>>,
+    mat_handles: Res<MaterialHandles>,
 ) {
     events.iter().for_each(|event| {
         match event {
             PickingEvent::Clicked(ent) => {
-                let mat = materials.get_mut(
-                    material_q.get(*ent).unwrap()
-                ).unwrap();
-                mat.color = Color::RED;
+                commands.entity(*ent).insert(mat_handles.clicked.clone());
             },
             _ => (),
         }
