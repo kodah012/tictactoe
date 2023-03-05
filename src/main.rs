@@ -6,6 +6,7 @@ use bevy_mod_picking::{
     PickingCameraBundle, PickingEvent, Hover, Highlighting, NoDeselect, PickingPlugin, InteractablePickingPlugin, PickingPluginsState, HoverEvent, PickableMesh,
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use iyes_loopless::prelude::IntoConditionalSystem;
 
 #[derive(Resource, Clone, Copy)]
 struct Params {
@@ -61,9 +62,9 @@ fn main() {
         .add_plugins(DefaultPickingPlugins)
         //.add_plugin(DebugEventsPickingPlugin)
         
-        .add_startup_system(init_materials)
+        .add_startup_system_to_stage(StartupStage::PreStartup, init_materials)
         .add_startup_system(spawn_camera)
-        .add_startup_system(spawn_board.after(init_materials))
+        .add_startup_system(spawn_board)
         .add_system_to_stage(CoreStage::PostUpdate, handle_hover)
         .add_system_to_stage(CoreStage::PostUpdate, handle_picking)
 
