@@ -23,6 +23,15 @@ struct MaterialHandles {
     pub picked_hovered: Handle<ColorMaterial>,
 }
 
+#[derive(Resource)]
+struct TextureAtlasHandle(Handle<TextureAtlas>);
+
+#[derive(Resource)]
+struct TextureAtlasIndices {
+    pub x_index: usize,
+    pub o_index: usize,
+}
+
 #[derive(Component, Reflect, Eq, PartialEq)]
 enum CellState {
     None,
@@ -63,15 +72,55 @@ fn main() {
         //.add_plugin(DebugEventsPickingPlugin)
         
         .add_startup_system_to_stage(StartupStage::PreStartup, init_materials)
-        .add_startup_system(spawn_camera)
+        .add_startup_system_to_stage(StartupStage::PreStartup, init_textures)
         .add_startup_system(spawn_board)
+        .add_startup_system(spawn_camera)
         .add_system_to_stage(CoreStage::PostUpdate, handle_hover)
         .add_system_to_stage(CoreStage::PostUpdate, handle_picking)
 
         .add_plugin(WorldInspectorPlugin)
         .register_type::<CellState>()
+        .register_type::<TextureAtlasSprite>()
 
         .run();
+}
+
+
+fn init_textures(
+    mut commands: Commands,
+    mut tex_atlases: ResMut<Assets<TextureAtlas>>,
+    asset_server: Res<AssetServer>,
+) {
+    let tex_handle = asset_server.load("../assets/atlas.png");
+    let mut tex_atlas = TextureAtlas::new_empty(tex_handle, Vec2::new(248., 119.));
+
+    let x_index = tex_atlas.add_texture(Rect {
+        min: Vec2::new(192., 97.),
+        max: Vec2::new(208., 113.),
+    });
+    let o_index = tex_atlas.add_texture(Rect {
+        min: Vec2::new(211., 97.),
+        max: Vec2::new(227., 113.),
+    });
+    commands.insert_resource(TextureAtlasIndices {
+        x_index,
+        o_index,
+    });
+
+    let tex_atlas_handle = tex_atlases.add(tex_atlas);
+    commands.insert_resource(TextureAtlasHandle(tex_atlas_handle));
+
+    /*
+    commands.spawn(
+        SpriteSheetBundle {
+            sprite: TextureAtlasSprite::new(x_index),
+            texture_atlas: tex_atlas_handle,
+            transform: Transform::from_scale(Vec3::splat(6.)),
+            ..default()
+        }
+    );
+    */
+    
 }
 
 fn init_materials(
@@ -126,13 +175,14 @@ fn spawn_board(
     
     for row in -1..=1 {
         for col in -1..=1 {
+            let transform = Transform::from_scale(Vec3::splat(128.))
+                .with_translation(
+                    Vec3::new(col as f32 * params.tile_size, row as f32 * params.tile_size, 0.)
+                );
             let cell_ent = commands.spawn((
                 MaterialMesh2dBundle {
                     mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
-                    transform: Transform::from_scale(Vec3::splat(128.))
-                        .with_translation(
-                            Vec3::new(col as f32 * params.tile_size, row as f32 * params.tile_size, 0.)
-                        ),
+                    transform,
                     material: mat_handles.initial.clone_weak(),
                     ..default()
                 },
@@ -149,16 +199,23 @@ fn handle_picking(
     mut commands: Commands,
     mut events: EventReader<PickingEvent>,
     mat_handles: Res<MaterialHandles>,
-    state_q: Query<&CellState>,
+    tex_atlas_handle: Res<TextureAtlasHandle>,
+    cell_q: Query<(&CellState, &Transform)>,
 ) {
     events.iter().for_each(|event| {
         match event {
             PickingEvent::Clicked(ent) => {
-                let state = state_q.get(*ent).unwrap();
+                let (state, transform) = cell_q.get(*ent).unwrap();
                 if *state == CellState::None {
                     commands.entity(*ent)
                         .insert(mat_handles.picked.clone_weak())
-                        .insert(CellState::X);
+                        .insert(CellState::X)
+                        .insert(SpriteSheetBundle {
+                            texture_atlas: tex_atlas_handle.0.clone(),
+                            transform: Transform::from_translation(transform.translation)
+                                .with_scale(Vec3::splat(3.)),
+                            ..default()
+                        });
                 }
             },
             _ => (),
