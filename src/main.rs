@@ -28,6 +28,7 @@ struct TextureAtlasHandle(Handle<TextureAtlas>);
 
 #[derive(Resource)]
 struct TextureAtlasIndices {
+    pub bg_index: usize,
     pub x_index: usize,
     pub o_index: usize,
 }
@@ -103,6 +104,10 @@ fn init_textures(
     let tex_handle = asset_server.load("../assets/atlas.png");
     let mut tex_atlas = TextureAtlas::new_empty(tex_handle, Vec2::new(248., 119.));
 
+    let bg_index = tex_atlas.add_texture(Rect {
+        min: Vec2::new(125., 3.),
+        max: Vec2::new(189., 116.),
+    });
     let x_index = tex_atlas.add_texture(Rect {
         min: Vec2::new(192., 97.),
         max: Vec2::new(208., 113.),
@@ -112,6 +117,7 @@ fn init_textures(
         max: Vec2::new(227., 113.),
     });
     commands.insert_resource(TextureAtlasIndices {
+        bg_index,
         x_index,
         o_index,
     });
@@ -119,6 +125,19 @@ fn init_textures(
     let tex_atlas_handle = tex_atlases.add(tex_atlas);
     commands.insert_resource(TextureAtlasHandle(tex_atlas_handle));
 
+
+    /*
+    commands.spawn(
+        SpriteSheetBundle {
+            sprite: TextureAtlasSprite::new(x_index),
+            texture_atlas: tex_atlas_handle,
+            transform: Transform::from_scale(Vec3::splat(6.)),
+            ..default()
+        }
+    );
+    */
+    
+    
     /*
     commands.spawn(
         SpriteSheetBundle {
@@ -167,7 +186,10 @@ fn init_materials(
 fn spawn_camera(
     mut commands: Commands,
 ) {
-    commands.spawn(Camera2dBundle::default())
+    commands.spawn(Camera2dBundle{
+        transform: Transform::from_translation(Vec3::new(0., 0., 100.)),
+        ..default()
+    })
         .insert(PickingCameraBundle::default())
         .insert(Name::new("Camera"));
 }
@@ -176,18 +198,35 @@ fn spawn_board(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mat_handles: Res<MaterialHandles>,
+    tex_atlas_handle: Res<TextureAtlasHandle>,
+    tex_atlas_indices: Res<TextureAtlasIndices>,
     params: Res<Params>,
 ) {
     let board_ent = commands.spawn(SpatialBundle::default())
         .insert(Name::new("Board"))
         .id();
+        
+    let bg_ent = commands.spawn((
+        SpriteSheetBundle {
+            sprite: TextureAtlasSprite::new(tex_atlas_indices.bg_index),
+            texture_atlas: tex_atlas_handle.0.clone_weak(),
+            transform: Transform::from_scale(Vec3::splat(8.))
+                .with_translation(Vec3::new(0., 0., -100.)),
+            ..default()
+        },
+        Name::new("Background"),
+    )).id();
+    commands.entity(board_ent).add_child(bg_ent);
     
     for row in -1..=1 {
         for col in -1..=1 {
+            let gap_multiplier = 1.18;
             let transform = Transform::from_scale(Vec3::splat(128.))
-                .with_translation(
-                    Vec3::new(col as f32 * params.tile_size, row as f32 * params.tile_size, 0.)
-                );
+                .with_translation(Vec3::new(
+                    col as f32 * params.tile_size * gap_multiplier,
+                    row as f32 * params.tile_size * gap_multiplier - 52.,
+                    0.,
+                ));
             let cell_ent = commands.spawn((
                 MaterialMesh2dBundle {
                     mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
@@ -197,6 +236,7 @@ fn spawn_board(
                 },
                 PickableBundle::default(),
                 CellState::None,
+                Name::new("Cell"),
             )).id();
             commands.entity(board_ent).add_child(cell_ent);
         }
@@ -226,7 +266,7 @@ fn handle_picking(
                         .insert(cell_state);
 
                     commands.spawn(SpriteSheetBundle {
-                        texture_atlas: tex_atlas_handle.0.clone(),
+                        texture_atlas: tex_atlas_handle.0.clone_weak(),
                         sprite: TextureAtlasSprite::new(sprite_index),
                         transform: Transform::from_translation(transform.translation)
                             .with_scale(Vec3::splat(4.)),
