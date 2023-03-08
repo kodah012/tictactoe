@@ -1,4 +1,6 @@
-use bevy::{prelude::*, window::PresentMode, sprite::MaterialMesh2dBundle};
+use std::iter::empty;
+
+use bevy::{prelude::*, window::PresentMode, sprite::MaterialMesh2dBundle, utils::HashMap};
 use bevy_mod_picking::{
     DebugEventsPickingPlugin,
     DefaultPickingPlugins,
@@ -6,7 +8,6 @@ use bevy_mod_picking::{
     PickingCameraBundle, PickingEvent, Hover, Highlighting, NoDeselect, PickingPlugin, InteractablePickingPlugin, PickingPluginsState, HoverEvent, PickableMesh,
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use iyes_loopless::prelude::IntoConditionalSystem;
 
 #[derive(Resource, Clone, Copy)]
 struct Params {
@@ -33,6 +34,9 @@ struct TextureAtlasIndices {
     pub o_index: usize,
 }
 
+#[derive(Resource)]
+struct Board(HashMap<BoardPosition, Entity>);
+
 #[derive(Resource, Eq, PartialEq)]
 enum GameState {
     XTurn,
@@ -45,6 +49,13 @@ enum CellState {
     X,
     O,
 }
+
+#[derive(Component, Reflect, Eq, PartialEq, Hash, Clone, Copy)]
+struct BoardPosition {
+    row: i32,
+    col: i32,
+}
+
 
 fn main() {
     let params = Params {
@@ -91,6 +102,7 @@ fn main() {
         .add_plugin(WorldInspectorPlugin)
         .register_type::<CellState>()
         .register_type::<TextureAtlasSprite>()
+        .register_type::<BoardPosition>()
 
         .run();
 }
@@ -124,31 +136,6 @@ fn init_textures(
 
     let tex_atlas_handle = tex_atlases.add(tex_atlas);
     commands.insert_resource(TextureAtlasHandle(tex_atlas_handle));
-
-
-    /*
-    commands.spawn(
-        SpriteSheetBundle {
-            sprite: TextureAtlasSprite::new(x_index),
-            texture_atlas: tex_atlas_handle,
-            transform: Transform::from_scale(Vec3::splat(6.)),
-            ..default()
-        }
-    );
-    */
-    
-    
-    /*
-    commands.spawn(
-        SpriteSheetBundle {
-            sprite: TextureAtlasSprite::new(x_index),
-            texture_atlas: tex_atlas_handle,
-            transform: Transform::from_scale(Vec3::splat(6.)),
-            ..default()
-        }
-    );
-    */
-    
 }
 
 fn init_materials(
@@ -218,6 +205,8 @@ fn spawn_board(
     )).id();
     commands.entity(board_ent).add_child(bg_ent);
     
+    let mut board = Board(HashMap::new());
+    
     for row in -1..=1 {
         for col in -1..=1 {
             let gap_multiplier = 1.18;
@@ -227,6 +216,7 @@ fn spawn_board(
                     row as f32 * params.tile_size * gap_multiplier - 52.,
                     0.,
                 ));
+            let board_pos = BoardPosition { row, col };
             let cell_ent = commands.spawn((
                 MaterialMesh2dBundle {
                     mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
@@ -236,11 +226,16 @@ fn spawn_board(
                 },
                 PickableBundle::default(),
                 CellState::None,
+                board_pos,
                 Name::new("Cell"),
             )).id();
             commands.entity(board_ent).add_child(cell_ent);
+            
+            board.0.insert(board_pos, cell_ent);
         }
     }
+    
+    commands.insert_resource(board);
 }
 
 
@@ -251,30 +246,32 @@ fn handle_picking(
     mat_handles: Res<MaterialHandles>,
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
-    cell_q: Query<(&CellState, &Transform)>,
+    cell_qry: Query<(&CellState, &BoardPosition)>,
 ) {
     events.iter().for_each(|event| {
         match event {
             PickingEvent::Clicked(ent) => {
-                let (state, transform) = cell_q.get(*ent).unwrap();
+                let (state, _) = cell_qry.get(*ent).unwrap();
                 if *state == CellState::None {
                     let sprite_index = if *game_state == GameState::XTurn { tex_atlas_indices.x_index } else { tex_atlas_indices.o_index };
                     let cell_state = if *game_state == GameState::XTurn { CellState::X } else { CellState::O };
                     
-                    commands.entity(*ent)
-                        .insert(mat_handles.picked.clone_weak())
-                        .insert(cell_state);
-
-                    commands.spawn(SpriteSheetBundle {
+                    let sprite_ent = commands.spawn(SpriteSheetBundle {
                         texture_atlas: tex_atlas_handle.0.clone_weak(),
                         sprite: TextureAtlasSprite::new(sprite_index),
-                        transform: Transform::from_translation(transform.translation)
-                            .with_scale(Vec3::splat(4.)),
+                        transform: Transform::from_scale(Vec3::splat(0.05)),
                         ..default()
-                    });
+                    }).id();
+
+                    commands.entity(*ent)
+                        .insert(mat_handles.picked.clone_weak())
+                        .insert(cell_state)
+                        .add_child(sprite_ent);
 
                     let new_state = if *game_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
                     *game_state = new_state;
+                    
+                    check_board_state(&cell_qry);
                 }
             },
             _ => (),
@@ -286,19 +283,19 @@ fn handle_hover(
     mut commands: Commands,
     mut events: EventReader<PickingEvent>,
     mat_handles: Res<MaterialHandles>,
-    state_q: Query<&CellState>,
+    state_qry: Query<&CellState>,
 ) {
     events.iter().for_each(|event| {
         match event {
             PickingEvent::Hover(HoverEvent::JustEntered(ent)) => {
-                let state = state_q.get(*ent).unwrap();
+                let state = state_qry.get(*ent).unwrap();
                 match *state {
                     CellState::None => commands.entity(*ent).insert(mat_handles.initial_hovered.clone_weak()),
                     _ => commands.entity(*ent).insert(mat_handles.picked_hovered.clone_weak()),
                 };
             },
             PickingEvent::Hover(HoverEvent::JustLeft(ent)) => {
-                let state = state_q.get(*ent).unwrap();
+                let state = state_qry.get(*ent).unwrap();
                 match *state {
                     CellState::None => commands.entity(*ent).insert(mat_handles.initial.clone_weak()),
                     _ => commands.entity(*ent).insert(mat_handles.picked.clone_weak()),
@@ -307,4 +304,10 @@ fn handle_hover(
             _ => (),
         }
     });
+}
+
+
+fn check_board_state(cell_qry: &Query<(&CellState, &BoardPosition)>) {
+    for (state, pos) in cell_qry.iter() {
+    }
 }

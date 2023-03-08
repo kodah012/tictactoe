@@ -9,7 +9,6 @@ edition = "2021"
 bevy = { version = "0.9.1", features = ["wayland"] }
 bevy-inspector-egui = "0.17.0"
 bevy_mod_picking = "0.11.0"
-iyes_loopless = "0.9.1"
 
 [profile.dev]
 opt-level = 1
