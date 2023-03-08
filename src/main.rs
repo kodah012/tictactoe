@@ -32,6 +32,12 @@ struct TextureAtlasIndices {
     pub o_index: usize,
 }
 
+#[derive(Resource, Eq, PartialEq)]
+enum GameState {
+    XTurn,
+    OTurn,
+}
+
 #[derive(Component, Reflect, Eq, PartialEq)]
 enum CellState {
     None,
@@ -47,12 +53,15 @@ fn main() {
     };
 
     App::new()
-        .insert_resource(PickingPluginsState {
-            enable_picking: true,
-            enable_highlighting: false,
-            enable_interacting: true,
+        .add_startup_system_to_stage(StartupStage::PreStartup, move |mut commands: Commands| {
+            commands.insert_resource(PickingPluginsState {
+                enable_picking: true,
+                enable_highlighting: false,
+                enable_interacting: true,
+            });
+            commands.insert_resource(params);
+            commands.insert_resource(GameState::XTurn);
         })
-        .insert_resource(params)
 
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
@@ -198,8 +207,10 @@ fn spawn_board(
 fn handle_picking(
     mut commands: Commands,
     mut events: EventReader<PickingEvent>,
+    mut game_state: ResMut<GameState>,
     mat_handles: Res<MaterialHandles>,
     tex_atlas_handle: Res<TextureAtlasHandle>,
+    tex_atlas_indices: Res<TextureAtlasIndices>,
     cell_q: Query<(&CellState, &Transform)>,
 ) {
     events.iter().for_each(|event| {
@@ -207,15 +218,23 @@ fn handle_picking(
             PickingEvent::Clicked(ent) => {
                 let (state, transform) = cell_q.get(*ent).unwrap();
                 if *state == CellState::None {
+                    let sprite_index = if *game_state == GameState::XTurn { tex_atlas_indices.x_index } else { tex_atlas_indices.o_index };
+                    let cell_state = if *game_state == GameState::XTurn { CellState::X } else { CellState::O };
+                    
                     commands.entity(*ent)
                         .insert(mat_handles.picked.clone_weak())
-                        .insert(CellState::X)
-                        .insert(SpriteSheetBundle {
-                            texture_atlas: tex_atlas_handle.0.clone(),
-                            transform: Transform::from_translation(transform.translation)
-                                .with_scale(Vec3::splat(3.)),
-                            ..default()
-                        });
+                        .insert(cell_state);
+
+                    commands.spawn(SpriteSheetBundle {
+                        texture_atlas: tex_atlas_handle.0.clone(),
+                        sprite: TextureAtlasSprite::new(sprite_index),
+                        transform: Transform::from_translation(transform.translation)
+                            .with_scale(Vec3::splat(4.)),
+                        ..default()
+                    });
+
+                    let new_state = if *game_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
+                    *game_state = new_state;
                 }
             },
             _ => (),
