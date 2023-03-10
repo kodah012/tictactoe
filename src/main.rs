@@ -43,7 +43,7 @@ enum GameState {
     OTurn,
 }
 
-#[derive(Component, Reflect, Eq, PartialEq)]
+#[derive(Component, Reflect, Eq, PartialEq, Clone, Copy)]
 enum CellState {
     None,
     X,
@@ -247,11 +247,12 @@ fn handle_picking(
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
     cell_qry: Query<(&CellState, &BoardPosition)>,
+    board: Res<Board>,
 ) {
     events.iter().for_each(|event| {
         match event {
             PickingEvent::Clicked(ent) => {
-                let (state, _) = cell_qry.get(*ent).unwrap();
+                let (state, board_pos) = cell_qry.get(*ent).unwrap();
                 if *state == CellState::None {
                     let sprite_index = if *game_state == GameState::XTurn { tex_atlas_indices.x_index } else { tex_atlas_indices.o_index };
                     let cell_state = if *game_state == GameState::XTurn { CellState::X } else { CellState::O };
@@ -271,7 +272,8 @@ fn handle_picking(
                     let new_state = if *game_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
                     *game_state = new_state;
                     
-                    check_board_state(&cell_qry);
+                    let game_over = check_game_over(&cell_qry, (state, board_pos), &board);
+                    println!("{}", game_over);
                 }
             },
             _ => (),
@@ -307,7 +309,39 @@ fn handle_hover(
 }
 
 
-fn check_board_state(cell_qry: &Query<(&CellState, &BoardPosition)>) {
-    for (state, pos) in cell_qry.iter() {
+fn check_game_over(
+    cell_qry: &Query<(&CellState, &BoardPosition)>,
+    picked_cell: (&CellState, &BoardPosition),
+    board: &Board,
+) -> bool {
+    let picked_state = *picked_cell.0;
+    let picked_pos = *picked_cell.1;
+
+    // Check horizontal
+    for col in -1..=1 {
+        let pos = BoardPosition { row: picked_pos.row, col };
+        let ent = board.0.get(&pos).unwrap();
+        let (state, _) = cell_qry.get(*ent).unwrap();
+        if *state != picked_state {
+            break;
+        }
+        if col == 1 {
+            return true;
+        }
     }
+    
+    // Check vertical
+    for row in -1..=1 {
+        let pos = BoardPosition { row, col: picked_pos.col };
+        let ent = board.0.get(&pos).unwrap();
+        let (state, _) = cell_qry.get(*ent).unwrap();
+        if *state != picked_state {
+            break;
+        }
+        if row == 1 {
+            return true;
+        }
+    }
+    
+    false
 }
