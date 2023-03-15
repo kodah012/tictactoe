@@ -35,7 +35,7 @@ struct TextureAtlasIndices {
 }
 
 #[derive(Resource)]
-struct Board(HashMap<BoardPosition, Entity>);
+struct Board(HashMap<CellPosition, Entity>);
 
 #[derive(Resource, Eq, PartialEq)]
 enum GameState {
@@ -43,15 +43,15 @@ enum GameState {
     OTurn,
 }
 
-#[derive(Component, Reflect, Eq, PartialEq, Clone, Copy)]
+#[derive(Component, Reflect, Eq, PartialEq, Clone, Copy, Debug)]
 enum CellState {
     None,
     X,
     O,
 }
 
-#[derive(Component, Reflect, Eq, PartialEq, Hash, Clone, Copy)]
-struct BoardPosition {
+#[derive(Component, Reflect, Eq, PartialEq, Hash, Clone, Copy, Debug)]
+struct CellPosition {
     row: i32,
     col: i32,
 }
@@ -102,7 +102,7 @@ fn main() {
         .add_plugin(WorldInspectorPlugin)
         .register_type::<CellState>()
         .register_type::<TextureAtlasSprite>()
-        .register_type::<BoardPosition>()
+        .register_type::<CellPosition>()
 
         .run();
 }
@@ -213,10 +213,10 @@ fn spawn_board(
             let transform = Transform::from_scale(Vec3::splat(128.))
                 .with_translation(Vec3::new(
                     col as f32 * params.tile_size * gap_multiplier,
-                    row as f32 * params.tile_size * gap_multiplier - 52.,
+                    -(row as f32 * params.tile_size * gap_multiplier + 52.),
                     0.,
                 ));
-            let board_pos = BoardPosition { row, col };
+            let cell_pos = CellPosition { row, col };
             let cell_ent = commands.spawn((
                 MaterialMesh2dBundle {
                     mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
@@ -226,12 +226,12 @@ fn spawn_board(
                 },
                 PickableBundle::default(),
                 CellState::None,
-                board_pos,
+                cell_pos,
                 Name::new("Cell"),
             )).id();
             commands.entity(board_ent).add_child(cell_ent);
             
-            board.0.insert(board_pos, cell_ent);
+            board.0.insert(cell_pos, cell_ent);
         }
     }
     
@@ -246,13 +246,13 @@ fn handle_picking(
     mat_handles: Res<MaterialHandles>,
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
-    cell_qry: Query<(&CellState, &BoardPosition)>,
+    cell_qry: Query<(&CellState, &CellPosition)>,
     board: Res<Board>,
 ) {
     events.iter().for_each(|event| {
         match event {
             PickingEvent::Clicked(ent) => {
-                let (state, board_pos) = cell_qry.get(*ent).unwrap();
+                let (state, cell_pos) = cell_qry.get(*ent).unwrap();
                 if *state == CellState::None {
                     let sprite_index = if *game_state == GameState::XTurn { tex_atlas_indices.x_index } else { tex_atlas_indices.o_index };
                     let cell_state = if *game_state == GameState::XTurn { CellState::X } else { CellState::O };
@@ -272,7 +272,7 @@ fn handle_picking(
                     let new_state = if *game_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
                     *game_state = new_state;
                     
-                    let game_over = check_game_over(&cell_qry, (state, board_pos), &board);
+                    let game_over = check_game_over(&cell_qry, (&cell_state, cell_pos), &board);
                     println!("{}", game_over);
                 }
             },
@@ -310,8 +310,8 @@ fn handle_hover(
 
 
 fn check_game_over(
-    cell_qry: &Query<(&CellState, &BoardPosition)>,
-    picked_cell: (&CellState, &BoardPosition),
+    cell_qry: &Query<(&CellState, &CellPosition)>,
+    picked_cell: (&CellState, &CellPosition),
     board: &Board,
 ) -> bool {
     let picked_state = *picked_cell.0;
@@ -319,7 +319,14 @@ fn check_game_over(
 
     // Check horizontal
     for col in -1..=1 {
-        let pos = BoardPosition { row: picked_pos.row, col };
+        if col == picked_pos.col {
+            if col == 1 {
+                return true;
+            }
+            continue;
+        }
+
+        let pos = CellPosition { row: picked_pos.row, col };
         let ent = board.0.get(&pos).unwrap();
         let (state, _) = cell_qry.get(*ent).unwrap();
         if *state != picked_state {
@@ -332,7 +339,14 @@ fn check_game_over(
     
     // Check vertical
     for row in -1..=1 {
-        let pos = BoardPosition { row, col: picked_pos.col };
+        if row == picked_pos.row {
+            if row == 1 {
+                return true;
+            }
+            continue;
+        }
+
+        let pos = CellPosition { row, col: picked_pos.col };
         let ent = board.0.get(&pos).unwrap();
         let (state, _) = cell_qry.get(*ent).unwrap();
         if *state != picked_state {
@@ -342,6 +356,8 @@ fn check_game_over(
             return true;
         }
     }
+    
+    // Check diagonals
     
     false
 }
