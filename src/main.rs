@@ -357,7 +357,51 @@ fn check_game_over(
         }
     }
     
-    // Check diagonals
+    // Check left-right diagonal
+    let mut col = -1;
+    for row in -1..=1 {
+        let pos = CellPosition { row, col };
+        if pos == picked_pos {
+            if row == 1 {
+                return true;
+            }
+            continue;
+        }
+
+        let ent = board.0.get(&pos).unwrap();
+        let (state, _) = cell_qry.get(*ent).unwrap();
+        if *state != picked_state {
+            break;
+        }
+        if row == 1 {
+            return true;
+        }
+        
+        col += 1;
+    }
+    
+    // Check right-left diagonal
+    let mut col = 1;
+    for row in -1..=1 {
+        let pos = CellPosition { row, col };
+        if pos == picked_pos {
+            if row == 1 {
+                return true;
+            }
+            continue;
+        }
+
+        let ent = board.0.get(&pos).unwrap();
+        let (state, _) = cell_qry.get(*ent).unwrap();
+        if *state != picked_state {
+            break;
+        }
+        if row == 1 {
+            return true;
+        }
+        
+        col -= 1;
+    }
     
     false
 }
