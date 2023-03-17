@@ -35,10 +35,11 @@ struct TextureAtlasIndices {
 #[derive(Resource)]
 struct Board(HashMap<CellPosition, Entity>);
 
-#[derive(Resource, Eq, PartialEq)]
+#[derive(Resource, Eq, PartialEq, Debug)]
 enum GameState {
     XTurn,
     OTurn,
+    GameOver,
 }
 
 #[derive(Component, Reflect, Eq, PartialEq, Clone, Copy, Debug)]
@@ -196,7 +197,7 @@ fn spawn_board(
     for row in -1..=1 {
         for col in -1..=1 {
             let gap_multiplier = 1.18;
-            let transform = Transform::from_scale(Vec3::splat(params.tile_size * 1.1))
+            let transform = Transform::from_scale(Vec3::splat(params.tile_size * 1.12))
                 .with_translation(Vec3::new(
                     col as f32 * params.tile_size * gap_multiplier,
                     -(row as f32 * params.tile_size * gap_multiplier + 52.),
@@ -229,7 +230,6 @@ fn handle_picking(
     mut commands: Commands,
     mut events: EventReader<PickingEvent>,
     mut game_state: ResMut<GameState>,
-    mat_handles: Res<MaterialHandles>,
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
     cell_qry: Query<(&CellState, &CellPosition)>,
@@ -254,11 +254,13 @@ fn handle_picking(
                         .insert(cell_state)
                         .add_child(sprite_ent);
 
-                    let new_state = if *game_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
-                    *game_state = new_state;
-                    
                     let game_over = check_game_over(&cell_qry, (&cell_state, cell_pos), &board);
-                    println!("{}", game_over);
+                    if game_over {
+                        handle_game_over(&mut game_state);
+                    } else {
+                        let new_state = if *game_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
+                        *game_state = new_state;
+                    }
                 }
             },
             _ => (),
@@ -334,6 +336,7 @@ fn check_game_over(
     }
     
     // Check left-right diagonal
+    // TODO: Fix issue where game over is not detected when picked cell is top left or center
     let mut col = -1;
     for row in -1..=1 {
         let pos = CellPosition { row, col };
@@ -357,6 +360,7 @@ fn check_game_over(
     }
     
     // Check right-left diagonal
+    // TODO: Fix issue where game over is not detected when picked cell is top right or center
     let mut col = 1;
     for row in -1..=1 {
         let pos = CellPosition { row, col };
@@ -380,4 +384,14 @@ fn check_game_over(
     }
     
     false
+}
+
+fn handle_game_over(game_state: &mut GameState) {
+    let winner = match game_state {
+        GameState::XTurn => Ok("X"),
+        GameState::OTurn => Ok("O"),
+        _ => Err("Game state is already GameOver")
+    }.unwrap();
+
+    println!("{winner} won!");
 }
