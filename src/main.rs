@@ -18,10 +18,8 @@ struct Params {
 
 #[derive(Resource)]
 struct MaterialHandles {
-    pub initial: Handle<ColorMaterial>,
-    pub initial_hovered: Handle<ColorMaterial>,
-    pub picked: Handle<ColorMaterial>,
-    pub picked_hovered: Handle<ColorMaterial>,
+    pub transparent: Handle<ColorMaterial>,
+    pub hovered: Handle<ColorMaterial>,
 }
 
 #[derive(Resource)]
@@ -142,31 +140,19 @@ fn init_materials(
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let initial_mat = materials.add(ColorMaterial {
+    let transparent = materials.add(ColorMaterial {
         color: Color::rgba(0., 0., 0., 0.),
         ..default()
     });
-
-    let initial_hovered_mat = materials.add(ColorMaterial {
+    
+    let hovered = materials.add(ColorMaterial {
         color: Color::rgba(0., 0., 0., 0.3),
         ..default()
     });
     
-    let clicked_mat = materials.add(ColorMaterial {
-        color: Color::rgba(1., 0., 0., 0.5),
-        ..default()
-    });
-    
-    let clicked_hovered_mat = materials.add(ColorMaterial {
-        color: Color::rgba(1., 0., 0., 0.8),
-        ..default()
-    });
-    
     commands.insert_resource(MaterialHandles {
-        initial: initial_mat,
-        initial_hovered: initial_hovered_mat,
-        picked: clicked_mat,
-        picked_hovered: clicked_hovered_mat,
+        transparent,
+        hovered,
     });
 }
 
@@ -210,7 +196,7 @@ fn spawn_board(
     for row in -1..=1 {
         for col in -1..=1 {
             let gap_multiplier = 1.18;
-            let transform = Transform::from_scale(Vec3::splat(128.))
+            let transform = Transform::from_scale(Vec3::splat(params.tile_size * 1.1))
                 .with_translation(Vec3::new(
                     col as f32 * params.tile_size * gap_multiplier,
                     -(row as f32 * params.tile_size * gap_multiplier + 52.),
@@ -221,7 +207,7 @@ fn spawn_board(
                 MaterialMesh2dBundle {
                     mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
                     transform,
-                    material: mat_handles.initial.clone_weak(),
+                    material: mat_handles.transparent.clone_weak(),
                     ..default()
                 },
                 PickableBundle::default(),
@@ -265,7 +251,6 @@ fn handle_picking(
                     }).id();
 
                     commands.entity(*ent)
-                        .insert(mat_handles.picked.clone_weak())
                         .insert(cell_state)
                         .add_child(sprite_ent);
 
@@ -285,23 +270,14 @@ fn handle_hover(
     mut commands: Commands,
     mut events: EventReader<PickingEvent>,
     mat_handles: Res<MaterialHandles>,
-    state_qry: Query<&CellState>,
 ) {
     events.iter().for_each(|event| {
         match event {
             PickingEvent::Hover(HoverEvent::JustEntered(ent)) => {
-                let state = state_qry.get(*ent).unwrap();
-                match *state {
-                    CellState::None => commands.entity(*ent).insert(mat_handles.initial_hovered.clone_weak()),
-                    _ => commands.entity(*ent).insert(mat_handles.picked_hovered.clone_weak()),
-                };
+                commands.entity(*ent).insert(mat_handles.hovered.clone_weak());
             },
             PickingEvent::Hover(HoverEvent::JustLeft(ent)) => {
-                let state = state_qry.get(*ent).unwrap();
-                match *state {
-                    CellState::None => commands.entity(*ent).insert(mat_handles.initial.clone_weak()),
-                    _ => commands.entity(*ent).insert(mat_handles.picked.clone_weak()),
-                };
+                commands.entity(*ent).insert(mat_handles.transparent.clone_weak());
             },
             _ => (),
         }
