@@ -336,7 +336,6 @@ fn check_game_over(
     }
     
     // Check left-right diagonal
-    // TODO: Fix issue where game over is not detected when picked cell is top left or center
     let mut col = -1;
     for row in -1..=1 {
         let pos = CellPosition { row, col };
@@ -344,6 +343,7 @@ fn check_game_over(
             if row == 1 {
                 return true;
             }
+            col += 1;
             continue;
         }
 
@@ -360,7 +360,6 @@ fn check_game_over(
     }
     
     // Check right-left diagonal
-    // TODO: Fix issue where game over is not detected when picked cell is top right or center
     let mut col = 1;
     for row in -1..=1 {
         let pos = CellPosition { row, col };
@@ -368,6 +367,7 @@ fn check_game_over(
             if row == 1 {
                 return true;
             }
+            col -= 1;
             continue;
         }
 
