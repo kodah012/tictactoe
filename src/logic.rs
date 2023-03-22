@@ -124,8 +124,8 @@ fn handle_picking(
                         .insert(cell_state)
                         .add_child(sprite_ent);
 
-                    let game_over = check_game_over(&cell_qry, (&cell_state, cell_pos), &board);
-                    if game_over {
+                    let winning_positions = check_game_over(&cell_qry, (&cell_state, cell_pos), &board);
+                    if let Some(positions) = winning_positions {
                         handle_game_over(&mut game_state);
                     } else {
                         let new_state = if *game_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
@@ -160,15 +160,17 @@ fn check_game_over(
     cell_qry: &Query<(&CellState, &CellPosition)>,
     picked_cell: (&CellState, &CellPosition),
     board: &Board,
-) -> bool {
+) -> Option<[CellPosition; 3]> {
     let picked_state = *picked_cell.0;
     let picked_pos = *picked_cell.1;
 
     // Check horizontal
+    let mut game_over = false;
     for col in -1..=1 {
         if col == picked_pos.col {
             if col == 1 {
-                return true;
+                game_over = true;
+                break;
             }
             continue;
         }
@@ -180,15 +182,26 @@ fn check_game_over(
             break;
         }
         if col == 1 {
-            return true;
+            game_over = true;
+            break;
         }
+    }
+    if game_over {
+        let row = picked_pos.row;
+        return Some([
+            CellPosition { row, col: -1 },
+            CellPosition { row, col: 0 },
+            CellPosition { row, col: 1 },
+        ]);
     }
     
     // Check vertical
+    game_over = false;
     for row in -1..=1 {
         if row == picked_pos.row {
             if row == 1 {
-                return true;
+                game_over = true;
+                break;
             }
             continue;
         }
@@ -200,17 +213,28 @@ fn check_game_over(
             break;
         }
         if row == 1 {
-            return true;
+            game_over = true;
+            break;
         }
+    }
+    if game_over {
+        let col = picked_pos.col;
+        return Some([
+            CellPosition { row: -1, col },
+            CellPosition { row: 0, col },
+            CellPosition { row: 1, col },
+        ]);
     }
     
     // Check left-right diagonal
+    game_over = false;
     let mut col = -1;
     for row in -1..=1 {
         let pos = CellPosition { row, col };
         if pos == picked_pos {
             if row == 1 {
-                return true;
+                game_over = true;
+                break;
             }
             col += 1;
             continue;
@@ -222,19 +246,29 @@ fn check_game_over(
             break;
         }
         if row == 1 {
-            return true;
+            game_over = true;
+            break;
         }
         
         col += 1;
     }
+    if game_over {
+        return Some([
+            CellPosition { row: -1, col: -1 },
+            CellPosition { row: 0, col: 0 },
+            CellPosition { row: 1, col: 1 },
+        ]);
+    }
     
     // Check right-left diagonal
+    game_over = false;
     let mut col = 1;
     for row in -1..=1 {
         let pos = CellPosition { row, col };
         if pos == picked_pos {
             if row == 1 {
-                return true;
+                game_over = true;
+                break;
             }
             col -= 1;
             continue;
@@ -246,13 +280,21 @@ fn check_game_over(
             break;
         }
         if row == 1 {
-            return true;
+            game_over = true;
+            break;
         }
         
         col -= 1;
     }
+    if game_over {
+        return Some([
+            CellPosition { row: -1, col: 1 },
+            CellPosition { row: 0, col: 0 },
+            CellPosition { row: 1, col: -1 },
+        ]);
+    }
     
-    false
+    None
 }
 
 fn handle_game_over(game_state: &mut GameState) {
