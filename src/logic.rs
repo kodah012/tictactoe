@@ -8,11 +8,13 @@ impl Plugin for LogicPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_event::<GameOverEvent>()
-            .insert_resource(GameState::XTurn)
+            .add_state::<GameState>()
             .add_startup_system(spawn_board)
-            .add_system(handle_hover.in_base_set(CoreSet::PostUpdate))
-            .add_system(handle_picking.in_base_set(CoreSet::PostUpdate))
-            .add_system(handle_game_over)
+            .add_systems((handle_hover, handle_picking).in_set(OnUpdate(GameState::XTurn)))
+            .add_systems((handle_hover, handle_picking).in_set(OnUpdate(GameState::OTurn)))
+            .add_systems((
+                highlight_winning_cells, show_game_over_popup
+            ).in_schedule(OnEnter(GameState::GameOver)))
             .register_type::<CellState>()
             .register_type::<CellPosition>();
     }
@@ -21,8 +23,9 @@ impl Plugin for LogicPlugin {
 #[derive(Resource)]
 struct Board(HashMap<CellPosition, Entity>);
 
-#[derive(Resource, Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, States, Hash, Default, Clone)]
 enum GameState {
+    #[default]
     XTurn,
     OTurn,
     GameOver,
@@ -103,22 +106,24 @@ fn spawn_board(
 fn handle_picking(
     mut commands: Commands,
     mut events: EventReader<PickingEvent>,
-    mut game_state: ResMut<GameState>,
+    mut next_game_state: ResMut<NextState<GameState>>,
     mut game_over_evt_wtr: EventWriter<GameOverEvent>,
+    game_state: ResMut<State<GameState>>,
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
     cell_qry: Query<(&CellState, &CellPosition)>,
     board: Res<Board>,
 ) {
     events.iter().for_each(|event| {
-        if *game_state == GameState::GameOver { return; }
+        let curr_state = &game_state.0;
+        if *curr_state == GameState::GameOver { return; }
 
         match event {
             PickingEvent::Clicked(ent) => {
                 let (state, cell_pos) = cell_qry.get(*ent).unwrap();
                 if *state == CellState::None {
-                    let sprite_index = if *game_state == GameState::XTurn { tex_atlas_indices.x_index } else { tex_atlas_indices.o_index };
-                    let cell_state = if *game_state == GameState::XTurn { CellState::X } else { CellState::O };
+                    let sprite_index = if *curr_state == GameState::XTurn { tex_atlas_indices.x_index } else { tex_atlas_indices.o_index };
+                    let cell_state = if *curr_state == GameState::XTurn { CellState::X } else { CellState::O };
                     
                     let sprite_ent = commands.spawn(SpriteSheetBundle {
                         texture_atlas: tex_atlas_handle.0.clone_weak(),
@@ -133,11 +138,11 @@ fn handle_picking(
 
                     let winning_positions = check_game_over(&cell_qry, (&cell_state, cell_pos), &board);
                     if let Some(positions) = winning_positions {
+                        next_game_state.set(GameState::GameOver);
                         game_over_evt_wtr.send(GameOverEvent(positions));
-                        *game_state = GameState::GameOver;
                     } else {
-                        let new_state = if *game_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
-                        *game_state = new_state;
+                        let new_state = if *curr_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
+                        next_game_state.set(new_state);
                     }
                 }
             },
@@ -150,10 +155,11 @@ fn handle_hover(
     mut commands: Commands,
     mut events: EventReader<PickingEvent>,
     mat_handles: Res<MaterialHandles>,
-    game_state: ResMut<GameState>,
+    game_state: ResMut<State<GameState>>,
 ) {
     events.iter().for_each(|event| {
-        if *game_state == GameState::GameOver { return; }
+        let curr_state = &game_state.0;
+        if *curr_state == GameState::GameOver { return; }
         match event {
             PickingEvent::Hover(HoverEvent::JustEntered(ent)) => {
                 commands.entity(*ent).insert(mat_handles.hovered.clone_weak());
@@ -166,7 +172,7 @@ fn handle_hover(
     });
 }
 
-fn handle_game_over(
+fn highlight_winning_cells(
     mut commands: Commands,
     mut game_over_evt_rdr: EventReader<GameOverEvent>,
     cell_qry: Query<(Entity, &CellState, &CellPosition)>,
@@ -180,8 +186,14 @@ fn handle_game_over(
             }
         }
     }
+}
 
-    // Highlight winning cells
+fn show_game_over_popup(
+    mut commands: Commands,
+    mut game_over_evt_rdr: EventReader<GameOverEvent>,
+    cell_qry: Query<(Entity, &CellState, &CellPosition)>,
+    mat_handles: Res<MaterialHandles>,
+) {
 }
 
 fn check_game_over(
