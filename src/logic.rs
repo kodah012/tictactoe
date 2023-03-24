@@ -10,9 +10,9 @@ impl Plugin for LogicPlugin {
             .add_event::<GameOverEvent>()
             .insert_resource(GameState::XTurn)
             .add_startup_system(spawn_board)
-            .add_system_to_stage(CoreStage::PostUpdate, handle_hover)
-            .add_system_to_stage(CoreStage::PostUpdate, handle_picking)
-            .add_system(handle_game_over.after(handle_picking))
+            .add_system(handle_hover.in_base_set(CoreSet::PostUpdate))
+            .add_system(handle_picking.in_base_set(CoreSet::PostUpdate))
+            .add_system(handle_game_over)
             .register_type::<CellState>()
             .register_type::<CellPosition>();
     }

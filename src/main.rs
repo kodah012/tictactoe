@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PresentMode};
+use bevy::{prelude::*, window::{PresentMode, WindowResolution}};
 use bevy_mod_picking::{
     DefaultPickingPlugins,
     PickingCameraBundle, PickingPluginsState,
@@ -29,14 +29,13 @@ fn main() {
 
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
-                window: WindowDescriptor {
-                    width: params.window_width,
-                    height: params.window_height,
-                    title: "Tic-Tac-Toe".to_string(),
+                primary_window: Some(Window {
                     present_mode: PresentMode::Fifo,
+                    resolution: WindowResolution::new(params.window_width, params.window_height),
+                    title: "Tic-Tac-Toe".to_string(),
                     resizable: false,
                     ..default()
-                },
+                }),
                 ..default()
             })
             .set(ImagePlugin::default_nearest())
@@ -44,11 +43,11 @@ fn main() {
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(LogicPlugin)
         
-        .add_startup_system_to_stage(StartupStage::PreStartup, init_materials)
-        .add_startup_system_to_stage(StartupStage::PreStartup, init_textures)
+        .add_startup_system(init_materials.in_base_set(StartupSet::PreStartup))
+        .add_startup_system(init_textures.in_base_set(StartupSet::PreStartup))
         .add_startup_system(spawn_camera)
 
-        .add_plugin(WorldInspectorPlugin)
+        .add_plugin(WorldInspectorPlugin::new())
         .register_type::<TextureAtlasSprite>()
 
         .run();
