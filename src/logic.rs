@@ -167,14 +167,16 @@ fn handle_hover(
 }
 
 fn handle_game_over(
+    mut commands: Commands,
     mut game_over_evt_rdr: EventReader<GameOverEvent>,
-    cell_qry: Query<(Entity, &CellState, &CellPosition)>
+    cell_qry: Query<(Entity, &CellState, &CellPosition)>,
+    mat_handles: Res<MaterialHandles>,
 ) {
     for evt in game_over_evt_rdr.iter() {
         let winning_positions = evt.0;
         for (ent, state, pos) in cell_qry.iter() {
             if winning_positions.contains(pos) {
-                println!("{:?}", state);
+                commands.entity(ent).insert(mat_handles.winner.clone_weak());
             }
         }
     }

@@ -94,13 +94,19 @@ fn init_materials(
     });
     
     let hovered = materials.add(ColorMaterial {
-        color: Color::rgba(0., 0., 0., 0.3),
+        color: Color::hex("#6540537f").unwrap(),
+        ..default()
+    });
+    
+    let winner = materials.add(ColorMaterial {
+        color: Color::hex("#654053").unwrap(),
         ..default()
     });
     
     commands.insert_resource(MaterialHandles {
         transparent,
         hovered,
+        winner,
     });
 }
 

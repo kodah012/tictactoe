@@ -11,6 +11,7 @@ pub struct Params {
 pub struct MaterialHandles {
     pub transparent: Handle<ColorMaterial>,
     pub hovered: Handle<ColorMaterial>,
+    pub winner: Handle<ColorMaterial>,
 }
 
 #[derive(Resource)]
