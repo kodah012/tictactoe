@@ -16,14 +16,11 @@ impl Plugin for InputPlugin {
 fn handle_cell_picking(
     mut commands: Commands,
     mut events: EventReader<PickingEvent>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-    mut game_over_evt_wtr: EventWriter<GameOverEvent>,
     mut cell_picked_evt_wtr: EventWriter<CellPickedEvent>,
     game_state: ResMut<State<GameState>>,
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
     cell_qry: Query<(&CellState, &CellPosition)>,
-    board: Res<Board>,
 ) {
     events.iter().for_each(|event| {
         let curr_state = &game_state.0;

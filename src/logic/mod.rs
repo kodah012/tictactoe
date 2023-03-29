@@ -13,7 +13,7 @@ impl Plugin for LogicPlugin {
             .add_event::<GameOverEvent>()
             .add_state::<GameState>()
             .add_startup_system(spawn_board)
-            .add_system(check_game_over)
+            .add_system(update_game_state)
             .add_systems((
                 highlight_winning_cells, show_game_over_popup
             ).in_schedule(OnEnter(GameState::GameOver)))

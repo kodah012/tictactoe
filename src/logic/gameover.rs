@@ -23,13 +23,18 @@ pub fn highlight_winning_cells(
 
 pub fn show_game_over_popup(
     mut commands: Commands,
-    game_over_evt_rdr: EventReader<GameOverEvent>,
+    mut game_over_evt_rdr: EventReader<GameOverEvent>,
     cell_qry: Query<(Entity, &CellState, &CellPosition)>,
     mat_handles: Res<MaterialHandles>,
 ) {
+    for evt in game_over_evt_rdr.iter() {
+        let ent = evt.last_picked_cell_ent;
+        let state = evt.last_picked_cell_state;
+        println!("{:?}", state);
+    }
 }
 
-pub fn check_game_over(
+pub fn update_game_state(
     mut next_game_state: ResMut<NextState<GameState>>,
     mut game_over_evt_wtr: EventWriter<GameOverEvent>,
     mut cell_picked_evt_rdr: EventReader<CellPickedEvent>,
@@ -49,8 +54,8 @@ pub fn check_game_over(
         if let Some(positions) = winning_positions {
             next_game_state.set(GameState::GameOver);
             game_over_evt_wtr.send(GameOverEvent {
-                picked_cell_ent: ent,
-                picked_cell_state: state,
+                last_picked_cell_ent: ent,
+                last_picked_cell_state: state,
                 winning_positions: positions,
             });
         } else {
