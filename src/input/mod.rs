@@ -30,7 +30,11 @@ fn handle_cell_picking(
             PickingEvent::Clicked(ent) => {
                 let (state, cell_pos) = cell_qry.get(*ent).unwrap();
                 if *state == CellState::None {
-                    let sprite_index = if *curr_state == GameState::XTurn { tex_atlas_indices.x_index } else { tex_atlas_indices.o_index };
+                    let sprite_index = if *curr_state == GameState::XTurn {
+                        tex_atlas_indices.x
+                    } else {
+                        tex_atlas_indices.o
+                    };
                     let new_state = if *curr_state == GameState::XTurn { CellState::X } else { CellState::O };
                     
                     let sprite_ent = commands.spawn(SpriteSheetBundle {

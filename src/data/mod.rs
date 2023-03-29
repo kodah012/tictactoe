@@ -47,7 +47,10 @@ pub struct TextureAtlasHandle(pub Handle<TextureAtlas>);
 
 #[derive(Resource)]
 pub struct TextureAtlasIndices {
-    pub bg_index: usize,
-    pub x_index: usize,
-    pub o_index: usize,
+    pub bg: usize,
+    pub x: usize,
+    pub o: usize,
+    pub x_turn: usize,
+    pub o_turn: usize,
+    pub game_over_popup: usize,
 }
