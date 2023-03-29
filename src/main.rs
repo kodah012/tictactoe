@@ -5,11 +5,14 @@ use bevy_mod_picking::{
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
+mod data;
+use data::*;
+
+mod input;
+use input::InputPlugin;
+
 mod logic;
 use logic::LogicPlugin;
-
-mod resources;
-use resources::*;
 
 
 fn main() {
@@ -42,6 +45,7 @@ fn main() {
         )
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(LogicPlugin)
+        .add_plugin(InputPlugin)
         
         .add_startup_system(init_materials.in_base_set(StartupSet::PreStartup))
         .add_startup_system(init_textures.in_base_set(StartupSet::PreStartup))

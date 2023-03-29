@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    resources::MaterialHandles,
-    logic::data::*
+    data::MaterialHandles,
+    logic::*,
 };
 
 pub fn highlight_winning_cells(
@@ -12,7 +12,7 @@ pub fn highlight_winning_cells(
     mat_handles: Res<MaterialHandles>,
 ) {
     for evt in game_over_evt_rdr.iter() {
-        let winning_positions = evt.0;
+        let winning_positions = evt.winning_positions;
         for (ent, state, pos) in cell_qry.iter() {
             if winning_positions.contains(pos) {
                 commands.entity(ent).insert(mat_handles.winner.clone_weak());
@@ -23,19 +23,54 @@ pub fn highlight_winning_cells(
 
 pub fn show_game_over_popup(
     mut commands: Commands,
-    mut game_over_evt_rdr: EventReader<GameOverEvent>,
+    game_over_evt_rdr: EventReader<GameOverEvent>,
     cell_qry: Query<(Entity, &CellState, &CellPosition)>,
     mat_handles: Res<MaterialHandles>,
 ) {
 }
 
 pub fn check_game_over(
-    cell_qry: &Query<(&CellState, &CellPosition)>,
-    picked_cell: (&CellState, &CellPosition),
+    mut next_game_state: ResMut<NextState<GameState>>,
+    mut game_over_evt_wtr: EventWriter<GameOverEvent>,
+    mut cell_picked_evt_rdr: EventReader<CellPickedEvent>,
+    curr_game_state: Res<State<GameState>>,
+    cell_qry: Query<&CellState>,
+    board: Res<Board>,
+) {
+    for evt in cell_picked_evt_rdr.iter() {
+        let ent = evt.entity;
+        let state = evt.state;
+        let pos = evt.position;
+        let winning_positions = get_winning_positions(
+            &cell_qry,
+            (state, pos),
+            &board
+        );
+        if let Some(positions) = winning_positions {
+            next_game_state.set(GameState::GameOver);
+            game_over_evt_wtr.send(GameOverEvent {
+                picked_cell_ent: ent,
+                picked_cell_state: state,
+                winning_positions: positions,
+            });
+        } else {
+            let new_state = if curr_game_state.0 == GameState::XTurn {
+                GameState::OTurn
+            } else {
+                GameState::XTurn
+            };
+            next_game_state.set(new_state);
+        }
+    }
+}
+
+fn get_winning_positions(
+    cell_qry: &Query<&CellState>,
+    picked_cell: (CellState, CellPosition),
     board: &Board,
 ) -> Option<[CellPosition; 3]> {
-    let picked_state = *picked_cell.0;
-    let picked_pos = *picked_cell.1;
+    let picked_state = picked_cell.0;
+    let picked_pos = picked_cell.1;
 
     // Check horizontal
     let mut game_over = false;
@@ -50,7 +85,7 @@ pub fn check_game_over(
 
         let pos = CellPosition { row: picked_pos.row, col };
         let ent = board.0.get(&pos).unwrap();
-        let (state, _) = cell_qry.get(*ent).unwrap();
+        let state = cell_qry.get(*ent).unwrap();
         if *state != picked_state {
             break;
         }
@@ -81,7 +116,7 @@ pub fn check_game_over(
 
         let pos = CellPosition { row, col: picked_pos.col };
         let ent = board.0.get(&pos).unwrap();
-        let (state, _) = cell_qry.get(*ent).unwrap();
+        let state = cell_qry.get(*ent).unwrap();
         if *state != picked_state {
             break;
         }
@@ -114,7 +149,7 @@ pub fn check_game_over(
         }
 
         let ent = board.0.get(&pos).unwrap();
-        let (state, _) = cell_qry.get(*ent).unwrap();
+        let state = cell_qry.get(*ent).unwrap();
         if *state != picked_state {
             break;
         }
@@ -148,7 +183,7 @@ pub fn check_game_over(
         }
 
         let ent = board.0.get(&pos).unwrap();
-        let (state, _) = cell_qry.get(*ent).unwrap();
+        let state = cell_qry.get(*ent).unwrap();
         if *state != picked_state {
             break;
         }

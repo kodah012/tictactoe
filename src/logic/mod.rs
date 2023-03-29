@@ -1,12 +1,9 @@
 use bevy::{prelude::*, utils::HashMap, sprite::MaterialMesh2dBundle};
 use bevy_mod_picking::{PickableBundle, PickingEvent, HoverEvent};
-use crate::resources::*;
+use crate::data::*;
 
-mod data;
-use data::*;
-
-mod systems;
-use systems::*;
+mod gameover;
+pub use gameover::*;
 
 pub struct LogicPlugin;
 
@@ -16,8 +13,7 @@ impl Plugin for LogicPlugin {
             .add_event::<GameOverEvent>()
             .add_state::<GameState>()
             .add_startup_system(spawn_board)
-            .add_systems((handle_hover, handle_picking).in_set(OnUpdate(GameState::XTurn)))
-            .add_systems((handle_hover, handle_picking).in_set(OnUpdate(GameState::OTurn)))
+            .add_system(check_game_over)
             .add_systems((
                 highlight_winning_cells, show_game_over_popup
             ).in_schedule(OnEnter(GameState::GameOver)))
@@ -81,73 +77,4 @@ fn spawn_board(
     }
     
     commands.insert_resource(board);
-}
-
-fn handle_picking(
-    mut commands: Commands,
-    mut events: EventReader<PickingEvent>,
-    mut next_game_state: ResMut<NextState<GameState>>,
-    mut game_over_evt_wtr: EventWriter<GameOverEvent>,
-    game_state: ResMut<State<GameState>>,
-    tex_atlas_handle: Res<TextureAtlasHandle>,
-    tex_atlas_indices: Res<TextureAtlasIndices>,
-    cell_qry: Query<(&CellState, &CellPosition)>,
-    board: Res<Board>,
-) {
-    events.iter().for_each(|event| {
-        let curr_state = &game_state.0;
-        if *curr_state == GameState::GameOver { return; }
-
-        match event {
-            PickingEvent::Clicked(ent) => {
-                let (state, cell_pos) = cell_qry.get(*ent).unwrap();
-                if *state == CellState::None {
-                    let sprite_index = if *curr_state == GameState::XTurn { tex_atlas_indices.x_index } else { tex_atlas_indices.o_index };
-                    let cell_state = if *curr_state == GameState::XTurn { CellState::X } else { CellState::O };
-                    
-                    let sprite_ent = commands.spawn(SpriteSheetBundle {
-                        texture_atlas: tex_atlas_handle.0.clone_weak(),
-                        sprite: TextureAtlasSprite::new(sprite_index),
-                        transform: Transform::from_scale(Vec3::splat(0.05)),
-                        ..default()
-                    }).id();
-
-                    commands.entity(*ent)
-                        .insert(cell_state)
-                        .add_child(sprite_ent);
-
-                    let winning_positions = check_game_over(&cell_qry, (&cell_state, cell_pos), &board);
-                    if let Some(positions) = winning_positions {
-                        next_game_state.set(GameState::GameOver);
-                        game_over_evt_wtr.send(GameOverEvent(positions));
-                    } else {
-                        let new_state = if *curr_state == GameState::XTurn { GameState::OTurn } else { GameState::XTurn };
-                        next_game_state.set(new_state);
-                    }
-                }
-            },
-            _ => (),
-        }
-    });
-}
-
-fn handle_hover(
-    mut commands: Commands,
-    mut events: EventReader<PickingEvent>,
-    mat_handles: Res<MaterialHandles>,
-    game_state: ResMut<State<GameState>>,
-) {
-    events.iter().for_each(|event| {
-        let curr_state = &game_state.0;
-        if *curr_state == GameState::GameOver { return; }
-        match event {
-            PickingEvent::Hover(HoverEvent::JustEntered(ent)) => {
-                commands.entity(*ent).insert(mat_handles.hovered.clone_weak());
-            },
-            PickingEvent::Hover(HoverEvent::JustLeft(ent)) => {
-                commands.entity(*ent).insert(mat_handles.transparent.clone_weak());
-            },
-            _ => (),
-        }
-    });
 }
