@@ -30,7 +30,6 @@ pub fn show_game_over_popup(
     for evt in game_over_evt_rdr.iter() {
         let ent = evt.last_picked_cell_ent;
         let state = evt.last_picked_cell_state;
-        println!("{:?}", state);
     }
 }
 
