@@ -27,32 +27,25 @@ impl Plugin for UiPlugin {
 
 fn update_turn_text(
     mut commands: Commands,
-    mut turn_text_qry: Query<(Entity, &mut Visibility, &TurnText)>,
+    mut turn_text_qry: Query<(Entity, &mut TextureAtlasSprite), With<TurnText>>,
     game_state: Res<State<GameState>>,
+    tex_atlas_indices: Res<TextureAtlasIndices>,
 ) {
-    for (ent, mut vis, turn_text) in turn_text_qry.iter_mut() {
+    for (ent, mut sprite) in turn_text_qry.iter_mut() {
         match game_state.0 {
             GameState::XTurn => {
-                if *turn_text == TurnText::X {
-                    *vis = Visibility::Visible;
-                    commands.entity(ent).insert(BlinkingTimer::new(
-                        Duration::from_millis(200),
-                        Duration::from_millis(50),
-                    ));
-                } else {
-                    *vis = Visibility::Hidden;
-                }
+                *sprite = TextureAtlasSprite::new(tex_atlas_indices.x_turn);
+                commands.entity(ent).insert(BlinkingTimer::new(
+                    Duration::from_millis(200),
+                    Duration::from_millis(50),
+                ));
             },
             GameState::OTurn => {
-                if *turn_text == TurnText::X {
-                    *vis = Visibility::Hidden;
-                } else {
-                    *vis = Visibility::Visible;
-                    commands.entity(ent).insert(BlinkingTimer::new(
-                        Duration::from_millis(200),
-                        Duration::from_millis(50),
-                    ));
-                }
+                *sprite = TextureAtlasSprite::new(tex_atlas_indices.o_turn);
+                commands.entity(ent).insert(BlinkingTimer::new(
+                    Duration::from_millis(200),
+                    Duration::from_millis(50),
+                ));
             },
             GameState::GameOver => (),
         }

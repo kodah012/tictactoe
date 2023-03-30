@@ -32,11 +32,8 @@ pub struct CellPosition {
     pub col: i32,
 }
 
-#[derive(Component, Eq, PartialEq)]
-pub enum TurnText {
-    X,
-    O,
-}
+#[derive(Component)]
+pub struct TurnText;
 
 #[derive(Resource, Clone, Copy)]
 pub struct Params {

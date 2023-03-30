@@ -73,19 +73,8 @@ pub fn spawn_turn_text(
         visibility: Visibility::Hidden,
         ..default()
     })
-        .insert(TurnText::X)
-        .insert(Name::new("X Turn Text"));
-
-    commands.spawn(SpriteSheetBundle {
-        texture_atlas: tex_atlas_handle.0.clone_weak(),
-        sprite: TextureAtlasSprite::new(tex_atlas_indices.o_turn),
-        transform: Transform::from_scale(Vec3::splat(8.))
-            .with_translation(Vec3::new(0., 270., -99.)),
-        visibility: Visibility::Hidden,
-        ..default()
-    })
-        .insert(TurnText::O)
-        .insert(Name::new("O Turn Text"));
+        .insert(TurnText)
+        .insert(Name::new("Turn Text"));
 }
 
 pub fn spawn_game_over_popup(
