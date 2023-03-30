@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::{prelude::*, utils::HashMap, sprite::MaterialMesh2dBundle};
 use bevy_mod_picking::{PickableBundle, PickingCameraBundle};
 
@@ -24,14 +26,19 @@ impl Plugin for UiPlugin {
 }
 
 fn update_turn_text(
-    mut turn_text_qry: Query<(&mut Visibility, &TurnText)>,
+    mut commands: Commands,
+    mut turn_text_qry: Query<(Entity, &mut Visibility, &TurnText)>,
     game_state: Res<State<GameState>>,
 ) {
-    for (mut vis, turn_text) in turn_text_qry.iter_mut() {
+    for (ent, mut vis, turn_text) in turn_text_qry.iter_mut() {
         match game_state.0 {
             GameState::XTurn => {
                 if *turn_text == TurnText::X {
                     *vis = Visibility::Visible;
+                    commands.entity(ent).insert(BlinkingTimer::new(
+                        Duration::from_millis(200),
+                        Duration::from_millis(50),
+                    ));
                 } else {
                     *vis = Visibility::Hidden;
                 }
@@ -41,6 +48,10 @@ fn update_turn_text(
                     *vis = Visibility::Hidden;
                 } else {
                     *vis = Visibility::Visible;
+                    commands.entity(ent).insert(BlinkingTimer::new(
+                        Duration::from_millis(200),
+                        Duration::from_millis(50),
+                    ));
                 }
             },
             GameState::GameOver => (),
