@@ -18,7 +18,8 @@ impl Plugin for UiPlugin {
             .add_startup_system(spawn_turn_text)
             .add_startup_system(spawn_game_over_popup)
             .add_system(update_turn_text.in_schedule(OnEnter(GameState::XTurn)))
-            .add_system(update_turn_text.in_schedule(OnEnter(GameState::OTurn)));
+            .add_system(update_turn_text.in_schedule(OnEnter(GameState::OTurn)))
+            .add_system(blinking);
     }
 }
 
@@ -43,6 +44,40 @@ fn update_turn_text(
                 }
             },
             GameState::GameOver => (),
+        }
+    }
+}
+
+fn show_game_over_popup(
+    mut commands: Commands,
+    mut game_over_evt_rdr: EventReader<GameOverEvent>,
+    cell_qry: Query<(Entity, &CellState, &CellPosition)>,
+    mat_handles: Res<MaterialHandles>,
+) {
+    for evt in game_over_evt_rdr.iter() {
+        let ent = evt.last_picked_cell_ent;
+        let state = evt.last_picked_cell_state;
+    }
+}
+
+pub fn blinking(
+    mut commands: Commands,
+    mut flashing_qry: Query<(Entity, &mut BlinkingTimer, &mut Visibility)>,
+    time: Res<Time>,
+) {
+    for (ent, mut timer, mut vis) in flashing_qry.iter_mut() {
+        timer.tick(time.delta());
+        if timer.just_blinked() {
+            *vis = if *vis == Visibility::Visible {
+                Visibility::Hidden
+            } else {
+                Visibility::Visible
+            };
+        }
+        if timer.just_finished() {
+            *vis = Visibility::Visible;
+            commands.entity(ent)
+                .remove::<BlinkingTimer>();
         }
     }
 }

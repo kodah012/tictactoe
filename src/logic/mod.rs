@@ -13,9 +13,7 @@ impl Plugin for LogicPlugin {
             .add_event::<GameOverEvent>()
             .add_state::<GameState>()
             .add_system(update_game_state)
-            .add_systems((
-                highlight_winning_cells, show_game_over_popup
-            ).in_schedule(OnEnter(GameState::GameOver)))
+            .add_system(highlight_winning_cells.in_schedule(OnEnter(GameState::GameOver)))
             .register_type::<CellState>()
             .register_type::<CellPosition>();
     }

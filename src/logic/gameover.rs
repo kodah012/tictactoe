@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 
 use crate::{
@@ -15,23 +17,17 @@ pub fn highlight_winning_cells(
         let winning_positions = evt.winning_positions;
         for (ent, state, pos) in cell_qry.iter() {
             if winning_positions.contains(pos) {
-                commands.entity(ent).insert(mat_handles.winner.clone_weak());
+                commands.entity(ent)
+                    .insert(mat_handles.winner.clone_weak())
+                    .insert(BlinkingTimer::new(
+                        Duration::from_millis(500),
+                        Duration::from_millis(50),
+                    ));
             }
         }
     }
 }
 
-pub fn show_game_over_popup(
-    mut commands: Commands,
-    mut game_over_evt_rdr: EventReader<GameOverEvent>,
-    cell_qry: Query<(Entity, &CellState, &CellPosition)>,
-    mat_handles: Res<MaterialHandles>,
-) {
-    for evt in game_over_evt_rdr.iter() {
-        let ent = evt.last_picked_cell_ent;
-        let state = evt.last_picked_cell_state;
-    }
-}
 
 pub fn update_game_state(
     mut next_game_state: ResMut<NextState<GameState>>,
