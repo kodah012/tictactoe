@@ -11,7 +11,10 @@ pub fn spawn_board(
     tex_atlas_indices: Res<TextureAtlasIndices>,
     params: Res<Params>,
 ) {
-    let board_ent = commands.spawn(SpatialBundle::default())
+    let board_ent = commands.spawn(SpatialBundle {
+        transform: Transform::from_translation(Vec3::new(0., 0., -100.)),
+        ..default()
+    })
         .insert(Name::new("Board"))
         .id();
         
@@ -82,7 +85,7 @@ pub fn spawn_game_over_popup(
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
 ) {
-    let popup_ent = commands.spawn(SpriteSheetBundle {
+    commands.spawn(SpriteSheetBundle {
         texture_atlas: tex_atlas_handle.0.clone_weak(),
         sprite: TextureAtlasSprite::new(tex_atlas_indices.game_over_popup),
         transform: Transform::from_scale(Vec3::splat(8.))
@@ -90,8 +93,8 @@ pub fn spawn_game_over_popup(
         visibility: Visibility::Hidden,
         ..default()
     })
-        .insert(Name::new("Game Over Popup"))
-        .id();
+        .insert(GameOverPopup)
+        .insert(Name::new("Game Over Popup"));
 }
 
 pub fn init_textures(

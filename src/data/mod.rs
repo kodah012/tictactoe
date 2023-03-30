@@ -35,6 +35,9 @@ pub struct CellPosition {
 #[derive(Component)]
 pub struct TurnText;
 
+#[derive(Component)]
+pub struct GameOverPopup;
+
 #[derive(Resource, Clone, Copy)]
 pub struct Params {
     pub tile_size: f32,

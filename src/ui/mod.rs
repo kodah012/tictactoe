@@ -21,6 +21,7 @@ impl Plugin for UiPlugin {
             .add_startup_system(spawn_game_over_popup)
             .add_system(update_turn_text.in_schedule(OnEnter(GameState::XTurn)))
             .add_system(update_turn_text.in_schedule(OnEnter(GameState::OTurn)))
+            .add_system(show_game_over_popup.in_schedule(OnEnter(GameState::GameOver)))
             .add_system(blinking);
     }
 }
@@ -55,12 +56,13 @@ fn update_turn_text(
 fn show_game_over_popup(
     mut commands: Commands,
     mut game_over_evt_rdr: EventReader<GameOverEvent>,
-    cell_qry: Query<(Entity, &CellState, &CellPosition)>,
-    mat_handles: Res<MaterialHandles>,
+    mut popup_qry: Query<&mut Visibility, With<GameOverPopup>>,
 ) {
     for evt in game_over_evt_rdr.iter() {
         let ent = evt.last_picked_cell_ent;
         let state = evt.last_picked_cell_state;
+        let mut vis = popup_qry.single_mut();
+        *vis = Visibility::Visible;
     }
 }
 
