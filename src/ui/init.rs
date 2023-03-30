@@ -73,6 +73,7 @@ pub fn spawn_turn_text(
         visibility: Visibility::Hidden,
         ..default()
     })
+        .insert(TurnText::X)
         .insert(Name::new("X Turn Text"));
 
     commands.spawn(SpriteSheetBundle {
@@ -83,6 +84,7 @@ pub fn spawn_turn_text(
         visibility: Visibility::Hidden,
         ..default()
     })
+        .insert(TurnText::O)
         .insert(Name::new("O Turn Text"));
 }
 
