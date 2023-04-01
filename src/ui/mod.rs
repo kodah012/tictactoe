@@ -22,7 +22,8 @@ impl Plugin for UiPlugin {
             .add_system(update_turn_text.in_schedule(OnEnter(GameState::XTurn)))
             .add_system(update_turn_text.in_schedule(OnEnter(GameState::OTurn)))
             .add_system(show_game_over_popup.in_schedule(OnEnter(GameState::GameOver)))
-            .add_system(blinking);
+            .add_system(update_blinking_timers)
+            .add_system(update_delay_timers);
     }
 }
 
@@ -56,22 +57,24 @@ fn update_turn_text(
 fn show_game_over_popup(
     mut commands: Commands,
     mut game_over_evt_rdr: EventReader<GameOverEvent>,
-    mut popup_qry: Query<&mut Visibility, With<GameOverPopup>>,
+    mut popup_qry: Query<(Entity, &mut Visibility), With<GameOverPopup>>,
 ) {
     for evt in game_over_evt_rdr.iter() {
-        let ent = evt.last_picked_cell_ent;
+        let cell_ent = evt.last_picked_cell_ent;
         let state = evt.last_picked_cell_state;
-        let mut vis = popup_qry.single_mut();
-        *vis = Visibility::Visible;
+        let (popup_ent, mut vis) = popup_qry.single_mut();
+        commands.entity(popup_ent).insert(DelayTimer(
+            Timer::new(Duration::from_millis(1000), TimerMode::Once)
+        ));
     }
 }
 
-pub fn blinking(
+fn update_blinking_timers(
     mut commands: Commands,
-    mut flashing_qry: Query<(Entity, &mut BlinkingTimer, &mut Visibility)>,
+    mut blinking_qry: Query<(Entity, &mut BlinkingTimer, &mut Visibility)>,
     time: Res<Time>,
 ) {
-    for (ent, mut timer, mut vis) in flashing_qry.iter_mut() {
+    for (ent, mut timer, mut vis) in blinking_qry.iter_mut() {
         timer.tick(time.delta());
         if timer.just_blinked() {
             *vis = if *vis == Visibility::Visible {
@@ -84,6 +87,22 @@ pub fn blinking(
             *vis = Visibility::Visible;
             commands.entity(ent)
                 .remove::<BlinkingTimer>();
+        }
+    }
+}
+
+fn update_delay_timers(
+    mut commands: Commands,
+    mut timer_qry: Query<(Entity, &mut DelayTimer, &mut Visibility)>,
+    time: Res<Time>,
+) {
+    for (ent, mut timer, mut vis) in timer_qry.iter_mut() {
+        timer.0.tick(time.delta());
+        *vis = if timer.0.just_finished() {
+            commands.entity(ent).remove::<DelayTimer>();
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
         }
     }
 }

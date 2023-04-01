@@ -29,3 +29,6 @@ impl BlinkingTimer {
         self.timer.just_finished()
     }
 }
+
+#[derive(Component)]
+pub struct DelayTimer(pub Timer);
