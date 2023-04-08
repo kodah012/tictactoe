@@ -84,7 +84,23 @@ pub fn spawn_game_over_popup(
     mut commands: Commands,
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
+    mat_handles: Res<MaterialHandles>,
 ) {
+    let o_text_sprite_ent = commands.spawn(SpriteSheetBundle {
+        texture_atlas: tex_atlas_handle.0.clone_weak(),
+        sprite: TextureAtlasSprite::new(tex_atlas_indices.o_text),
+        transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
+        ..default()
+    }).id();
+
+    let o_text_ent = commands.spawn(SpatialBundle {
+        transform: Transform::from_translation(Vec3::new(-10., 15.5, 1.)),
+        ..default()
+    })
+        .insert(mat_handles.bg.clone_weak())
+        .add_child(o_text_sprite_ent)
+        .id();
+
     commands.spawn(SpriteSheetBundle {
         texture_atlas: tex_atlas_handle.0.clone_weak(),
         sprite: TextureAtlasSprite::new(tex_atlas_indices.game_over_popup),
@@ -93,8 +109,9 @@ pub fn spawn_game_over_popup(
         visibility: Visibility::Hidden,
         ..default()
     })
-        .insert(GameOverPopup)
-        .insert(Name::new("Game Over Popup"));
+        .insert(GameOverPopup::X)
+        .insert(Name::new("Game Over Popup"))
+        .add_child(o_text_ent);
 }
 
 pub fn init_textures(
@@ -129,6 +146,10 @@ pub fn init_textures(
         min: Vec2::new(191., 35.),
         max: Vec2::new(245., 75.),
     });
+    let o_text = tex_atlas.add_texture(Rect {
+        min: Vec2::new(192., 89.),
+        max: Vec2::new(196., 94.),
+    });
     commands.insert_resource(TextureAtlasIndices {
         bg,
         x,
@@ -136,6 +157,7 @@ pub fn init_textures(
         x_turn,
         o_turn,
         game_over_popup,
+        o_text,
     });
 
     let tex_atlas_handle = tex_atlases.add(tex_atlas);
@@ -160,11 +182,17 @@ pub fn init_materials(
         color: Color::hex("#654053").unwrap(),
         ..default()
     });
+
+    let bg = materials.add(ColorMaterial {
+        color: Color::hex("#654053").unwrap(),
+        ..default()
+    });
     
     commands.insert_resource(MaterialHandles {
         transparent,
         hovered,
         winner,
+        bg,
     });
 }
 

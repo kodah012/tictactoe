@@ -36,7 +36,9 @@ pub struct CellPosition {
 pub struct TurnText;
 
 #[derive(Component)]
-pub struct GameOverPopup;
+pub enum GameOverPopup {
+    X, O
+}
 
 #[derive(Resource, Clone, Copy)]
 pub struct Params {
@@ -50,6 +52,7 @@ pub struct MaterialHandles {
     pub transparent: Handle<ColorMaterial>,
     pub hovered: Handle<ColorMaterial>,
     pub winner: Handle<ColorMaterial>,
+    pub bg: Handle<ColorMaterial>,
 }
 
 #[derive(Resource)]
@@ -63,4 +66,5 @@ pub struct TextureAtlasIndices {
     pub x_turn: usize,
     pub o_turn: usize,
     pub game_over_popup: usize,
+    pub o_text: usize,
 }

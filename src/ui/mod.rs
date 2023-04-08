@@ -57,12 +57,12 @@ fn update_turn_text(
 fn show_game_over_popup(
     mut commands: Commands,
     mut game_over_evt_rdr: EventReader<GameOverEvent>,
-    mut popup_qry: Query<(Entity, &mut Visibility), With<GameOverPopup>>,
+    mut popup_qry: Query<Entity, With<GameOverPopup>>,
 ) {
     for evt in game_over_evt_rdr.iter() {
         let cell_ent = evt.last_picked_cell_ent;
         let state = evt.last_picked_cell_state;
-        let (popup_ent, mut vis) = popup_qry.single_mut();
+        let popup_ent = popup_qry.single_mut();
         commands.entity(popup_ent).insert(DelayTimer(
             Timer::new(Duration::from_millis(1000), TimerMode::Once)
         ));
