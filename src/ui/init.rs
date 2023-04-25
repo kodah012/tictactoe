@@ -89,16 +89,28 @@ pub fn spawn_game_over_popup(
     let o_text_sprite_ent = commands.spawn(SpriteSheetBundle {
         texture_atlas: tex_atlas_handle.0.clone_weak(),
         sprite: TextureAtlasSprite::new(tex_atlas_indices.o_text),
+        transform: Transform::from_translation(Vec3::new(0., 0., 2.)),
+        ..default()
+    })
+        .insert(Name::new("O Text"))
+        .id();
+    
+    let o_text_bg_sprite_ent = commands.spawn(SpriteSheetBundle {
+        texture_atlas: tex_atlas_handle.0.clone_weak(),
+        sprite: TextureAtlasSprite::new(tex_atlas_indices.o_text_bg),
         transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
         ..default()
-    }).id();
-
+    })
+        .insert(Name::new("O Text Background"))
+        .id();
+    
     let o_text_ent = commands.spawn(SpatialBundle {
         transform: Transform::from_translation(Vec3::new(-10., 15.5, 1.)),
         ..default()
     })
         .insert(mat_handles.bg.clone_weak())
         .add_child(o_text_sprite_ent)
+        .add_child(o_text_bg_sprite_ent)
         .id();
 
     commands.spawn(SpriteSheetBundle {
@@ -150,6 +162,10 @@ pub fn init_textures(
         min: Vec2::new(192., 89.),
         max: Vec2::new(196., 94.),
     });
+    let o_text_bg = tex_atlas.add_texture(Rect {
+        min: Vec2::new(202., 37.),
+        max: Vec2::new(206., 42.)
+    });
     commands.insert_resource(TextureAtlasIndices {
         bg,
         x,
@@ -158,6 +174,7 @@ pub fn init_textures(
         o_turn,
         game_over_popup,
         o_text,
+        o_text_bg,
     });
 
     let tex_atlas_handle = tex_atlases.add(tex_atlas);

@@ -58,11 +58,24 @@ fn show_game_over_popup(
     mut commands: Commands,
     mut game_over_evt_rdr: EventReader<GameOverEvent>,
     mut popup_qry: Query<Entity, With<GameOverPopup>>,
+    mut name_qry: Query<(&Name, &mut Visibility)>,
 ) {
     for evt in game_over_evt_rdr.iter() {
         let cell_ent = evt.last_picked_cell_ent;
         let state = evt.last_picked_cell_state;
         let popup_ent = popup_qry.single_mut();
+
+        for (name, mut vis) in name_qry.iter_mut() {
+            let name = name.to_string();
+            if name == "O Text" || name == "O Text Background" {
+                if state == CellState::O {
+                    *vis = Visibility::Inherited;
+                } else {
+                    *vis = Visibility::Hidden;
+                }
+            }
+        }
+        
         commands.entity(popup_ent).insert(DelayTimer(
             Timer::new(Duration::from_millis(1000), TimerMode::Once)
         ));

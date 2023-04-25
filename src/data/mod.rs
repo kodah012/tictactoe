@@ -67,4 +67,5 @@ pub struct TextureAtlasIndices {
     pub o_turn: usize,
     pub game_over_popup: usize,
     pub o_text: usize,
+    pub o_text_bg: usize,
 }
