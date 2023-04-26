@@ -112,6 +112,26 @@ pub fn spawn_game_over_popup(
         .add_child(o_text_sprite_ent)
         .add_child(o_text_bg_sprite_ent)
         .id();
+        
+    let play_btn_ent = commands.spawn(SpriteSheetBundle {
+        texture_atlas: tex_atlas_handle.0.clone_weak(),
+        sprite: TextureAtlasSprite::new(tex_atlas_indices.play_btn),
+        transform: Transform::from_translation(Vec3::new(0., 4.5, 1.)),
+        ..default()
+    })
+        .insert(PlayBtn)
+        .insert(PickableBundle::default())
+        .id();
+    
+    let quit_btn_ent = commands.spawn(SpriteSheetBundle {
+        texture_atlas: tex_atlas_handle.0.clone_weak(),
+        sprite: TextureAtlasSprite::new(tex_atlas_indices.quit_btn),
+        transform: Transform::from_translation(Vec3::new(0., -4.5, 1.)),
+        ..default()
+    })
+        .insert(QuitBtn)
+        .insert(PickableBundle::default())
+        .id();
 
     commands.spawn(SpriteSheetBundle {
         texture_atlas: tex_atlas_handle.0.clone_weak(),
@@ -123,7 +143,9 @@ pub fn spawn_game_over_popup(
     })
         .insert(GameOverPopup::X)
         .insert(Name::new("Game Over Popup"))
-        .add_child(o_text_ent);
+        .add_child(o_text_ent)
+        .add_child(play_btn_ent)
+        .add_child(quit_btn_ent);
 }
 
 pub fn init_textures(
@@ -166,6 +188,14 @@ pub fn init_textures(
         min: Vec2::new(202., 37.),
         max: Vec2::new(206., 42.)
     });
+    let play_btn = tex_atlas.add_texture(Rect {
+        min: Vec2::new(191., 17.),
+        max: Vec2::new(216., 24.),
+    });
+    let quit_btn = tex_atlas.add_texture(Rect {
+        min: Vec2::new(191., 27.),
+        max: Vec2::new(216., 34.),
+    });
     commands.insert_resource(TextureAtlasIndices {
         bg,
         x,
@@ -175,6 +205,8 @@ pub fn init_textures(
         game_over_popup,
         o_text,
         o_text_bg,
+        play_btn,
+        quit_btn,
     });
 
     let tex_atlas_handle = tex_atlases.add(tex_atlas);

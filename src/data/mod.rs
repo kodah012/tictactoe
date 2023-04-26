@@ -5,6 +5,9 @@ use bevy::{prelude::*, utils::HashMap};
 mod events;
 pub use events::*;
 
+mod tags;
+pub use tags::*;
+
 mod timers;
 pub use timers::*;
 
@@ -68,4 +71,6 @@ pub struct TextureAtlasIndices {
     pub game_over_popup: usize,
     pub o_text: usize,
     pub o_text_bg: usize,
+    pub play_btn: usize,
+    pub quit_btn: usize,
 }

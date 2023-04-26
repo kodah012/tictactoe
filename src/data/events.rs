@@ -11,3 +11,6 @@ pub struct CellPickedEvent {
     pub state: CellState,
     pub position: CellPosition,
 }
+
+pub struct PlayBtnClickedEvt;
+pub struct QuitBtnClickedEvt;

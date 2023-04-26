@@ -5,6 +5,9 @@ use crate::data::*;
 mod gameover;
 pub use gameover::*;
 
+mod restart;
+pub use restart::*;
+
 pub struct LogicPlugin;
 
 impl Plugin for LogicPlugin {
