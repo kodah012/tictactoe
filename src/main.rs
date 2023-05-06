@@ -17,7 +17,6 @@ use logic::LogicPlugin;
 mod ui;
 use ui::UiPlugin;
 
-
 fn main() {
     let params = Params {
         tile_size: 128.,

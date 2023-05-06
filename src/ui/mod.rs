@@ -67,6 +67,7 @@ fn show_game_over_popup(
 
         for (name, mut vis) in name_qry.iter_mut() {
             let name = name.to_string();
+            // marker components may be better than querying entire scene for specific names
             if name == "O Text" || name == "O Text Background" {
                 if state == CellState::O {
                     *vis = Visibility::Inherited;

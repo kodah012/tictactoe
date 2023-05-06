@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::HashMap, sprite::MaterialMesh2dBundle};
+use bevy::{prelude::*, utils::HashMap, sprite::{MaterialMesh2dBundle, Mesh2dHandle}};
 use bevy_mod_picking::{PickableBundle, PickingCameraBundle};
 
 use crate::data::*;
@@ -82,6 +82,7 @@ pub fn spawn_turn_text(
 
 pub fn spawn_game_over_popup(
     mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
     tex_atlas_handle: Res<TextureAtlasHandle>,
     tex_atlas_indices: Res<TextureAtlasIndices>,
     mat_handles: Res<MaterialHandles>,
@@ -112,6 +113,21 @@ pub fn spawn_game_over_popup(
         .add_child(o_text_sprite_ent)
         .add_child(o_text_bg_sprite_ent)
         .id();
+
+        /*
+    let cell_ent = commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
+            transform,
+            material: mat_handles.transparent.clone_weak(),
+            ..default()
+        },
+        PickableBundle::default(),
+        CellState::None,
+        cell_pos,
+        Name::new("Cell"),
+    )).id();
+    */
         
     let play_btn_ent = commands.spawn(SpriteSheetBundle {
         texture_atlas: tex_atlas_handle.0.clone_weak(),
@@ -119,8 +135,14 @@ pub fn spawn_game_over_popup(
         transform: Transform::from_translation(Vec3::new(0., 4.5, 1.)),
         ..default()
     })
+        .insert(MaterialMesh2dBundle {
+            mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
+            material: mat_handles.transparent.clone(),
+            ..default()
+        })
         .insert(PlayBtn)
         .insert(PickableBundle::default())
+        .insert(Name::new("Play Button"))
         .id();
     
     let quit_btn_ent = commands.spawn(SpriteSheetBundle {
@@ -129,8 +151,10 @@ pub fn spawn_game_over_popup(
         transform: Transform::from_translation(Vec3::new(0., -4.5, 1.)),
         ..default()
     })
+        .insert(Mesh2dHandle(meshes.add(Mesh::from(shape::Quad::default())).into()))
         .insert(QuitBtn)
         .insert(PickableBundle::default())
+        .insert(Name::new("Quit Button"))
         .id();
 
     commands.spawn(SpriteSheetBundle {

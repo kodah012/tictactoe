@@ -11,24 +11,32 @@ impl Plugin for InputPlugin {
             .add_event::<PlayBtnClickedEvt>()
             .add_event::<QuitBtnClickedEvt>()
             .add_systems((handle_cell_hover, handle_cell_picking).in_set(OnUpdate(GameState::XTurn)))
-            .add_systems((handle_cell_hover, handle_cell_picking).in_set(OnUpdate(GameState::OTurn)))
-            .add_system(handle_play_btn_clicked);
+            .add_systems((handle_cell_hover, handle_cell_picking).in_set(OnUpdate(GameState::OTurn)));
+            //.add_system(handle_play_btn_clicked);
     }
 }
 
 fn handle_play_btn_clicked(
     mut picking_evt_rdr: EventReader<PickingEvent>,
     mut play_btn_evt_wtr: EventWriter<PlayBtnClickedEvt>,
-    play_btn_qry: Query<&PlayBtn>
+    game_over_popup_qry: Query<(Entity, With<GameOverPopup>)>,
+    play_btn_qry: Query<&PlayBtn>,
+    name_qry: Query<&Name>,
 ) {
     picking_evt_rdr.iter().for_each(|evt| {
         match evt {
-            PickingEvent::Clicked(ent) => {
+            PickingEvent::Clicked(ety) => {
                 // FIXME: no entities detected with the PlayBtn component
                 // maybe because it's a child of an the game over popup entity?
+                if let Ok(name) = name_qry.get(*ety) {
+                    println!("{}", name);
+                }
+                
+                /*
                 if let Ok(_) = play_btn_qry.get(*ent) {
                     play_btn_evt_wtr.send(PlayBtnClickedEvt);
                 }
+                */
             }
             _ => ()
         }
