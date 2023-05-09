@@ -20,7 +20,7 @@ use ui::UiPlugin;
 fn main() {
     let params = Params {
         tile_size: 128.,
-        window_width: 1600.,
+        window_width: 506.25,
         window_height: 900.,
     };
 
@@ -50,7 +50,7 @@ fn main() {
         .add_plugin(InputPlugin)
         .add_plugin(UiPlugin)
         
-        .add_plugin(WorldInspectorPlugin::new())
+        //.add_plugin(WorldInspectorPlugin::new())
         .register_type::<TextureAtlasSprite>()
 
         .run();

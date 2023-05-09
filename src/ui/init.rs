@@ -114,32 +114,12 @@ pub fn spawn_game_over_popup(
         .add_child(o_text_bg_sprite_ent)
         .id();
 
-        /*
-    let cell_ent = commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
-            transform,
-            material: mat_handles.transparent.clone_weak(),
-            ..default()
-        },
-        PickableBundle::default(),
-        CellState::None,
-        cell_pos,
-        Name::new("Cell"),
-    )).id();
-    */
-        
     let play_btn_ent = commands.spawn(SpriteSheetBundle {
         texture_atlas: tex_atlas_handle.0.clone_weak(),
         sprite: TextureAtlasSprite::new(tex_atlas_indices.play_btn),
         transform: Transform::from_translation(Vec3::new(0., 4.5, 1.)),
         ..default()
     })
-        .insert(MaterialMesh2dBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::default())).into(),
-            material: mat_handles.transparent.clone(),
-            ..default()
-        })
         .insert(PlayBtn)
         .insert(PickableBundle::default())
         .insert(Name::new("Play Button"))
